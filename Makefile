@@ -1,6 +1,7 @@
 #config begin
 PROJECTNAME=mytest
 EXECUTABLE=$(PROJECTNAME)
+VERBOSITY = 1
 # config end
 
 TARGETDIR=bin
@@ -12,6 +13,13 @@ GENSOURCES=$(subst .xsvf,.cpp, $(subst .hex,.cpp,$(BINS)))
 GENHEADERS=$(subst .xsvf,.h, $(subst .hex,.h,$(BINS)))
 SOURCES += $(GENSOURCES)
 
+# debug control
+V_AT = $(V_AT_$(V))
+V_AT_ = $(V_AT_$(VERBOSITY))
+V_AT_0 = @
+V_AT_1 =
+
+# build rules
 all : build
 	@echo " =====> all"
 
