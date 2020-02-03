@@ -1,38 +1,30 @@
-#config begin
+######### config begin
 PROJECTNAME=mytest
-EXECUTABLE=$(PROJECTNAME)
+TARGETDIR=bin
+EXECUTABLE=$(TARGETDIR)/$(PROJECTNAME)
+BINEXT=.hex .xsvf
 VERBOSITY = 1
 # config end
 
-TARGETDIR=bin
-SOURCES=$(sort $(filter-out $(GENSOURCES),$(filter-out $(IGNORE_FILES),$(wildcard *.cpp))))
-OBJECTS=$(addprefix $(TARGETDIR)/,$(subst .c,.o,$(subst .cpp,.o,$(SOURCES))))
-BINS+=$(sort $(filter-out $(IGNORE_FILES),$(wildcard *.hex)))
-BINS+=$(sort $(filter-out $(IGNORE_FILES),$(wildcard *.xsvf)))
-GENSOURCES=$(subst .xsvf,.cpp, $(subst .hex,.cpp,$(BINS)))
-GENHEADERS=$(subst .xsvf,.h, $(subst .hex,.h,$(BINS)))
-SOURCES += $(GENSOURCES)
 
-# debug control
+all : build
+
+include bins.mk
+
+
+SOURCES+=$(sort $(filter-out $(IGNORE_FILES),$(wildcard *.cpp)))
+OBJECTS=$(addprefix $(TARGETDIR)/,$(subst .c,.o,$(subst .cpp,.o,$(SOURCES))))
+
+
+######### debug control
 V_AT = $(V_AT_$(V))
 V_AT_ = $(V_AT_$(VERBOSITY))
 V_AT_0 = @
 V_AT_1 =
 
-# build rules
-all : build
-	@echo " =====> all"
+########## main rules
 
-.PHONY : show
-show:
-	@echo " =====> show"
-	$(foreach var,$(.VARIABLES),$(info $(var) = $($(var))))
-
-.PHONY : clean
-clean:
-	@echo " =====> clean"
-	$(RM) -r $(TARGETDIR) $(GENSOURCES) $(GENHEADERS)
-
+.PHONY : build
 build : compile link
 	@echo " =====> build"
 
@@ -50,7 +42,7 @@ $(DYNAMICLIB) : $(OBJECTS)
 
 $(STATICLIB) : $(OBJECTS)
 
-# rules to build
+######### rules to build
 $(TARGETDIR)/%.o : %.cpp
 	@echo " =====> compile $< to $@"
 	$(V_AT)mkdir -p $(TARGETDIR)
@@ -58,42 +50,22 @@ $(TARGETDIR)/%.o : %.cpp
 
 #	$(V_AT)$(CXX) -MM $(CXXFLAGS) $< >$(TARGETDIR)/$*.d
 
-######### binary convertion ################
 
-define BIN_CONVERT_H= 
-	@echo "#ifndef __$(shell basename $@ .h | tr a-z A-Z )_H__" > $@      
-	@echo "#define __$(shell basename $@ .h | tr a-z A-Z )_H__" >> $@     
-	@echo >> $@                                                           
-	@echo "extern size_t $(shell basename $@ .h)_size;">> $@ 
-	@echo "extern unsigned char $(shell basename $@ .h)[];" >> $@             
-	@echo >> $@                                                           
-	@echo "#endif" >> $@                                                  
-	@echo  >> $@                                   
-endef
+######### help rules 
+.PHONY: clean
+clean::
+	@echo " =====> clean"
+	$(V_AT)$(RM) -r $(TARGETDIR)
 
-define BIN_CONVERT_C=
-	@echo "#include \"StdAfx.h\""> $@      
-	@echo "#include \"$(shell basename $@ .cpp).h\"" >> $@
-	@echo >> $@                                                           
-	@echo "size_t $(shell basename $@ .cpp)_size=$(shell stat -L -c '%s' $< );">> $@ 
-	@echo "unsigned char $(shell basename $@ .cpp)[] = {" >> $@             
-	@xxd -i < $< >> $@                                                    
-	@echo "};" >> $@                                                      
-	@echo >> $@                                                           
-endef
 
-%.h: %.hex
-	@echo " =====> convert $< to $@"
-	$(V_AT)$(BIN_CONVERT_H)
 
-%.h: %.xsvf
-	@echo " =====> convert $< to $@"
-	$(V_AT)$(BIN_CONVERT_H)
+.PHONY : show
+show-all:
+	@echo " =====> show-all"
+	$(foreach var,$(.VARIABLES),$(info $(var) = $($(var))))
 
-%.cpp : %.hex
-	@echo " =====> convert $< to $@"
-	$(V_AT)$(BIN_CONVERT_C)
+SHOWVARS=OBJECTS SOURCES BINS GENSOURCES GENHEADERS
 
-%.cpp : %.xsvf
-	@echo " =====> convert $< to $@"
-	$(V_AT)$(BIN_CONVERT_C)
+.PHONY: show
+show:
+	$(foreach var,$(SHOWVARS),$(info $(var) = $($(var))))
