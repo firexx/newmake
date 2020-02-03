@@ -38,7 +38,7 @@ link : $(EXECUTABLE) $(DYNAMICLIB) $(STATICLIB)
 
 $(EXECUTABLE) : $(OBJECTS)
 	@echo " =====> linking an executable $(EXECUTABLE)"
-	$(V_AT)$(CXX) -o $@ $(OBJECTS) $(addsuffix /$(TARGETDIR),$(LIBRARY_PATH)) $(EXT_LIBRARY_PATH) $(LDFLAGS)
+	$(V_AT)$(CXX) -o $@ $^ $(addsuffix /$(TARGETDIR),$(LIBRARY_PATH)) $(EXT_LIBRARY_PATH) $(LDFLAGS)
 
 $(DYNAMICLIB) : $(OBJECTS)
 
