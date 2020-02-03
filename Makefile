@@ -7,11 +7,16 @@ VERBOSITY = 1
 # config end
 
 
-all : build
 
 SOURCES=$(sort $(filter-out $(IGNORE_FILES),$(wildcard *.cpp)))
 OBJECTS=$(addprefix $(TARGETDIR)/,$(subst .c,.o,$(subst .cpp,.o,$(SOURCES))))
 
+BINS=$(foreach binext, $(BINEXT), $(wildcard *$(binext)))
+GENSOURCES=$(foreach binext,$(BINEXT),$(patsubst %$(binext),%.cpp,$(filter %$(binext),$(BINS))))
+GENHEADERS=$(subst .cpp,.h,$(GENSOURCES))
+SOURCES+= $(GENSOURCES)
+
+all : build
 
 ######### debug control
 V_AT = $(V_AT_$(V))
@@ -66,10 +71,6 @@ show:
 	$(foreach var,$(SHOWVARS),$(info $(var) = $($(var))))
 
 ######### binaries 
-BINS=$(foreach binext, $(BINEXT), $(wildcard *$(binext)))
-GENSOURCES=$(foreach binext,$(BINEXT),$(patsubst %$(binext),%.cpp,$(filter %$(binext),$(BINS))))
-GENHEADERS=$(subst .cpp,.h,$(GENSOURCES))
-SOURCES+= $(GENSOURCES)
 
 clean::
 	$(V_AT)$(RM) $(GENSOURCES) $(GENHEADERS)
