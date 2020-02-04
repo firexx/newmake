@@ -30,9 +30,11 @@ V_AT_1 =
 build : compile link
 	@echo " =====> build"
 
+.PHONY : compile
 compile: $(GENHEADERS) $(GENSOURCES) $(OBJECTS)
 	@echo " =====> compile"
 
+.PHONY : link
 link : $(EXECUTABLE) $(DYNAMICLIB) $(STATICLIB)
 	@echo " =====> link"
 
@@ -72,45 +74,50 @@ show:
 
 ######### binaries 
 
+.PHONY : clean
 clean::
 	$(V_AT)$(RM) $(GENSOURCES) $(GENHEADERS)
 
 ######### binary convertion ################
 
-define BIN_CONVERT_H= 
-	@echo "#ifndef __$(shell basename $@ .h | tr a-z A-Z )_H__" > $@      
-	@echo "#define __$(shell basename $@ .h | tr a-z A-Z )_H__" >> $@     
-	@echo >> $@                                                           
-	@echo "extern size_t $(shell basename $@ .h)_size;">> $@ 
-	@echo "extern unsigned char $(shell basename $@ .h)[];" >> $@             
-	@echo >> $@                                                           
-	@echo "#endif" >> $@                                                  
-	@echo  >> $@                                   
+define BIN_CONVERT_h= 
+@echo " =====> convert $$< to $$@"
+	@echo "#ifndef __$$(shell basename $$@ .h | tr a-z A-Z )_H__" > $$@      
+	@echo "#define __$$(shell basename $$@ .h | tr a-z A-Z )_H__" >> $$@     
+	@echo >> $$@                                                           
+	@echo "extern size_t $$(shell basename $$@ .h)_size;">> $$@ 
+	@echo "extern unsigned char $$(shell basename $$@ .h)[];" >> $$@             
+	@echo >> $$@                                                           
+	@echo "#endif" >> $$@                                                  
+	@echo  >> $$@                                   
 endef
 
-define BIN_CONVERT_C=
-	@echo "#include \"StdAfx.h\""> $@      
-	@echo "#include \"$(shell basename $@ .cpp).h\"" >> $@
-	@echo >> $@                                                           
-	@echo "size_t $(shell basename $@ .cpp)_size=$(shell stat -L -c '%s' $< );">> $@ 
-	@echo "unsigned char $(shell basename $@ .cpp)[] = {" >> $@             
-	@xxd -i < $< >> $@                                                    
-	@echo "};" >> $@                                                      
-	@echo >> $@                                                           
+define BIN_CONVERT_cpp=
+@echo " =====> convert $$< to $$@"
+	@echo "#include \"StdAfx.h\""> $$@      
+	@echo "#include \"$$(shell basename $$@ .cpp).h\"" >> $$@
+	@echo >> $$@                                                           
+	@echo "size_t $$(shell basename $$@ .cpp)_size=$$(shell stat -L -c '%s' $$< );">> $$@ 
+	@echo "unsigned char $$(shell basename $$@ .cpp)[] = {" >> $$@             
+	@xxd -i < $$< >> $$@                                                    
+	@echo "};" >> $$@                                                      
+	@echo >> $$@                                                           
 endef
 
-%.h: %.hex
-	@echo " =====> convert $< to $@"
-	$(V_AT)$(BIN_CONVERT_H)
+define bin-to-cpp
+%.$2 : %$1
+	$(V_AT)$(BIN_CONVERT_$2)
 
-%.h: %.xsvf
-	@echo " =====> convert $< to $@"
-	$(V_AT)$(BIN_CONVERT_H)
+endef
 
-%.cpp : %.hex
-	@echo " =====> convert $< to $@"
-	$(V_AT)$(BIN_CONVERT_C)
+define bin-to-src
+$(call bin-to-cpp,$1,h)
+$(call bin-to-cpp,$1,cpp)
+endef
 
-%.cpp : %.xsvf
-	@echo " =====> convert $< to $@"
-	$(V_AT)$(BIN_CONVERT_C)
+# generate rules to convert bin files to sources for every binary etstension
+$(foreach binext,$(BINEXT),$(eval $(call bin-to-src,$(binext))))
+
+# generate dependency for generated cpp to generated h. otherwise the .h don't be generated
+$(foreach f,$(GENSOURCES),$(eval $(f):$(patsubst %.cpp,%.h,$(f))))
+
