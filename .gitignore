@@ -5,3 +5,5 @@ fw.cpp
 fw.h
 mytest
 
+ui_*.h
+moc_*.cpp
