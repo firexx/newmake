@@ -82,13 +82,7 @@ build : link
 
 compile: $(OBJECTS)
 
-$(OBJECTS) : precompile 
-
-precompile: binprecompile qtprecompile
-
-binprecompile: $(GENHEADERS) $(GENSOURCES)
-
-qtprecompile: $(QMOC_SOURCES) $(QUIS_HEADERS)
+$(OBJECTS) :  $(GENHEADERS) $(GENSOURCES) $(QMOC_SOURCES) $(QUIS_HEADERS)
 
 link :: $(EXECUTABLE) $(DYNAMICLIB) $(STATICLIB)
 	@echo " =====> link"
