@@ -3,8 +3,8 @@
 
 #include "QSmartLineEdit.h"
 #include "ui_uifile.h"
-#include "fw.h"
-#include "fpga.h"
+#include "generated_fw.h"
+#include "generated_fpga.h"
 
 int main(int,char *[]){
 	QSmartLineEdit sle(NULL);

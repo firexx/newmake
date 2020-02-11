@@ -24,7 +24,7 @@ SOURCES=$(sort $(filter-out $(IGNORE_FILES),$(wildcard *.cpp)))
 OBJECTS=$(addprefix $(TARGETDIR)/,$(subst .cpp,.o,$(SOURCES)))
 
 BINS=$(filter-out $(IGNORE_FILES),$(foreach binext, $(BINEXT), $(wildcard *$(binext))))
-GENSOURCES=$(foreach binext,$(BINEXT),$(patsubst %$(binext),%.cpp,$(filter %$(binext),$(BINS))))
+GENSOURCES=$(foreach binext,$(BINEXT),$(patsubst %$(binext),generated_%.cpp,$(filter %$(binext),$(BINS))))
 GENHEADERS=$(subst .cpp,.h,$(GENSOURCES))
 SOURCES+= $(GENSOURCES)
 
@@ -137,11 +137,11 @@ clean::
 
 define BIN_CONVERT_h= 
 @echo " =====> convert $$< to $$@"
-	@echo "#ifndef __$$(shell basename $$@ .h | tr a-z A-Z )_H__" > $$@      
-	@echo "#define __$$(shell basename $$@ .h | tr a-z A-Z )_H__" >> $$@     
+	@echo "#ifndef __$$(patsubst %.h,%,$$@)_H__" > $$@      
+	@echo "#define __$$(patsubst %.h,%,$$@)_H__" >> $$@     
 	@echo >> $$@                                                           
-	@echo "extern size_t $$(shell basename $$@ .h)_size;">> $$@ 
-	@echo "extern unsigned char $$(shell basename $$@ .h)[];" >> $$@             
+	@echo "extern size_t $$(patsubst generated_%.h,%,$$@)_size;">> $$@ 
+	@echo "extern unsigned char $$(patsubst generated_%.h,%,$$@)[];" >> $$@             
 	@echo >> $$@                                                           
 	@echo "#endif" >> $$@                                                  
 	@echo  >> $$@                                   
@@ -150,17 +150,17 @@ endef
 define BIN_CONVERT_cpp=
 @echo " =====> convert $$< to $$@"
 	@echo "#include \"StdAfx.h\""> $$@      
-	@echo "#include \"$$(shell basename $$@ .cpp).h\"" >> $$@
+	@echo "#include \"$$(parsubst  %.cpp,%.h,$$@)\"" >> $$@
 	@echo >> $$@                                                           
-	@echo "size_t $$(shell basename $$@ .cpp)_size=$$(shell stat -L -c '%s' $$< );">> $$@ 
-	@echo "unsigned char $$(shell basename $$@ .cpp)[] = {" >> $$@             
+	@echo "size_t $$(patsubst generated_%.cpp,%,$$@)_size=$$(shell stat -L -c '%s' $$< );">> $$@ 
+	@echo "unsigned char $$(patsubst generated_%.cpp,%,$$@)[] = {" >> $$@             
 	@xxd -i < $$< >> $$@                                                    
 	@echo "};" >> $$@                                                      
 	@echo >> $$@                                                           
 endef
 
 define bin-to-cpp
-%.$2 : %$1
+generated_%.$2 : %$1
 	$(V_AT)$(BIN_CONVERT_$2)
 
 endef

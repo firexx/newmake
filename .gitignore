@@ -7,3 +7,4 @@ mytest
 
 ui_*.h
 moc_*.cpp
+generated_*
