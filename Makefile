@@ -1,26 +1,10 @@
-######### config begin
-PROJECTNAME=mytest
+
 BINDIR=bin
-EXECUTABLE=$(TARGETDIR)/$(PROJECTNAME)
-BINEXT=.hex .xsvf
-
-QTDIR=/opt/qt511
-QTINC=$(QTDIR)/include
-INCLUDES+= -I$(QTINC) -I${QTINC}/QtGui -I${QTINC}/QtCore -I${QTINC}/QtWidgets -I${QTINC}/QtSql
-CXXFLAGS_BASE=-c -Wall -std=c++11 -fPIC -isystem=${SYSROOT} -DNDEBUG -DWITH_PROFILER -pthread $(INCLUDES)
-CXXFLAGS_RELEASE= -O3 -DRELEASE
-
-EXT_LIBRARY_PATH+=-L/$(QTDIR)/lib
-LDFLAGS_BASE+= -lQt5Widgets -lQt5Gui -lQt5Core -lQt5ScriptTools
-
-VERBOSITY = 1
-# config end
-
 
 LDFLAGS=$(LDFLAGS_BASE) 
 CXXFLAGS=$(CXXFLAGS_BASE)
 
-SOURCES=$(sort $(filter-out $(IGNORE_FILES),$(wildcard *.cpp)))
+SOURCES+=$(sort $(filter-out $(IGNORE_FILES),$(wildcard *.cpp)))
 OBJECTS=$(addprefix $(TARGETDIR)/,$(subst .cpp,.o,$(SOURCES)))
 
 BINS=$(filter-out $(IGNORE_FILES),$(foreach binext, $(BINEXT), $(wildcard *$(binext))))
@@ -60,14 +44,13 @@ endif
 
 TARGETDIR=$(BINDIR)/$(DO_CONF)
 
-
 all : build
 
 release :
 	$(MAKE) CONF=release
 	
 debug : 
-	$(MAKE) conf=debug
+	$(MAKE) CONF=debug
 
 ######### debug control
 V_AT = $(V_AT_$(V))
@@ -77,23 +60,29 @@ V_AT_1 =
 
 ########## main rules
 
-.PHONY : build link compile precompile binprecompile qtprecompile
+.PHONY : build link compile
 build : link
 
 compile: $(OBJECTS)
 
-$(OBJECTS) :  $(GENHEADERS) $(GENSOURCES) $(QMOC_SOURCES) $(QUIS_HEADERS)
+GENERATED_FILES += $(GENHEADERS) $(GENSOURCES) $(QMOC_SOURCES) $(QUIS_HEADERS)
+
+$(OBJECTS): $(GENERATED_FILES)
 
 link :: $(EXECUTABLE) $(DYNAMICLIB) $(STATICLIB)
 	@echo " =====> link"
 
-$(EXECUTABLE) : $(OBJECTS)
+$(EXECUTABLE): $(OBJECTS)
 	@echo " =====> linking an executable $(EXECUTABLE)"
 	$(V_AT)$(CXX) -o $@ $^ $(addsuffix /$(TARGETDIR),$(LIBRARY_PATH)) $(EXT_LIBRARY_PATH) $(LDFLAGS)
 
-$(DYNAMICLIB) : $(OBJECTS)
+$(STATICLIB): $(OBJECTS)
+	@echo " =====> linking a static library $(LIBRARY)"
+	$(V_AT)$(AR) rcs $@ $(OBJECTS)
 
-$(STATICLIB) : $(OBJECTS)
+$(DYNAMICLIB): $(OBJECTS)
+	@echo " =====> linking a dynamic library $(DYNAMIC)"
+	$(V_AT)$(CXX) -shared -o $@ $(OBJECTS) $(addsuffix /$(TARGETDIR),$(LIBRARY_PATH)) $(LDFLAGS)
 
 ######### rule to create deps
 ifeq (0,1)
@@ -121,7 +110,7 @@ show-all:
 	@echo " =====> show-all"
 	$(foreach var,$(.VARIABLES),$(info $(var) = $($(var))))
 
-SHOWVARS=EXECUTABLE OBJECTS SOURCES BINS GENSOURCES GENHEADERS QUIS_HEADERS QMOC_HEADERS QMOC_SOURCES DEPS
+SHOWVARS+=OBJECTS SOURCES BINS GENSOURCES GENHEADERS QUIS_HEADERS QMOC_HEADERS QMOC_SOURCES 
 
 .PHONY: show
 show:
@@ -150,7 +139,7 @@ endef
 define BIN_CONVERT_cpp=
 @echo " =====> convert $$< to $$@"
 	@echo "#include \"StdAfx.h\""> $$@      
-	@echo "#include \"$$(parsubst  %.cpp,%.h,$$@)\"" >> $$@
+	@echo "#include \"$$(patsubst  %.cpp,%.h,$$@)\"" >> $$@
 	@echo >> $$@                                                           
 	@echo "size_t $$(patsubst generated_%.cpp,%,$$@)_size=$$(shell stat -L -c '%s' $$< );">> $$@ 
 	@echo "unsigned char $$(patsubst generated_%.cpp,%,$$@)[] = {" >> $$@             
@@ -184,15 +173,15 @@ clean ::
 # convertion rules 
 ui_%.h: %.ui
 	@echo " =====> convert $< to $@"
-	$(V_AT)uic $< -o $@
+	$(V_AT)$(QTDIR)/bin/uic $< -o $@
 
 moc_%.cpp: %.h
 	@echo " =====> convert $< to $@"
-	$(V_AT)moc $< -o $@
+	$(V_AT)$(QTDIR)/bin/moc $< -o $@
 
 qrc_%.cpp: %.qrc
 	@echo " =====> convert $< to $@"
-	$(V_AT)rcc -name $(basename $< ) $< -o $@
+	$(V_AT)$(QTDIR)/bin/rcc -name $(basename $< ) $< -o $@
 
 ######### footer ################ 
 

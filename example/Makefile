@@ -1,0 +1,16 @@
+PROJECTNAME=mytest
+EXECUTABLE=$(TARGETDIR)/$(PROJECTNAME)
+BINEXT=.hex .xsvf
+
+QTDIR=/opt/qt511
+QTINC=$(QTDIR)/include
+INCLUDES+= -I$(QTINC) -I${QTINC}/QtGui -I${QTINC}/QtCore -I${QTINC}/QtWidgets -I${QTINC}/QtSql
+CXXFLAGS_BASE=-c -Wall -std=c++11 -fPIC -isystem=${SYSROOT} -DNDEBUG -DWITH_PROFILER -pthread $(INCLUDES)
+CXXFLAGS_RELEASE= -O3 -DRELEASE
+
+EXT_LIBRARY_PATH+=-L/$(QTDIR)/lib
+LDFLAGS_BASE+= -lQt5Widgets -lQt5Gui -lQt5Core -lQt5ScriptTools
+
+VERBOSITY = 1
+
+include ../Makefile
